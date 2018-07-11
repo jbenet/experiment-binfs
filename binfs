@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# assume all code starts with shebangs. just execute as a binary in the system.
+# WARNING: this is a demo only. don't use it.
+
+set -e
+source ./ipfs.sh
+
+# usage
+USAGE="binfs - a computable filesystems with arbitrary program execution
+usage:
+        $0 add <path-to-program>
+        $0 cat <ipfs-path>
+"
+
+# args / opts
+dangerous=false
+
+main() {
+
+  # parseArgs
+  while [ $# -gt 0 ]; do
+    arg="$1"
+    case "$arg" in
+    -h|--help) usage $USAGE ;;
+    --unsafe) dangerous="1";;
+    --*) die "unrecognised option: '$arg'\n$USAGE" ;;
+    *) cmd="$arg"; shift; args="$@"; break ;; # rest is args.
+    esac
+    shift # do it after to preserve arg if command
+  done
+
+  checkUserSafety "$dangerous"
+  checkIpfs
+
+  case "$cmd" in
+  cat) cmd_cat "$1" ;;
+  add) cmd_add "$1" ;;
+  *) die "unrecognised command: '$1' \n$USAGE" ;;
+  esac
+}
+
+cmd_cat() {
+  ipath="$1"
+  fpath=$(tmpfile)
+  ipfs cat "$ipath" >"$fpath"
+  chmod +x "$fpath"
+  $fpath # leeeeeeeeeeeeroy jenkins
+}
+
+cmd_add() {
+  ipfs add -r -Q "$1"
+}
+
+main $@ # entry point. call main
